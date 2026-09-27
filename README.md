@@ -70,9 +70,6 @@ The interface includes live state cards, a selectable terminal accent color, sea
 
 ### 1. Run the application
 
-Download the latest version from the **Releases** section, extract the files to any folder on your PC, and start `PhilipsControl.exe`.
-
-OR
 
 To run from source:
 
