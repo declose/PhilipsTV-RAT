@@ -1,0 +1,845 @@
+<Window x:Class="PhilipsControl.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:models="clr-namespace:PhilipsControl.Models"
+        xmlns:local="clr-namespace:PhilipsControl"
+        Title="Philips Control" Width="1220" Height="800" MinWidth="980" MinHeight="660"
+        WindowStyle="None" ResizeMode="CanResize" Background="{StaticResource Bg}" Foreground="{StaticResource Text}"
+        FontFamily="{StaticResource Mono}" FontSize="13" UseLayoutRounding="True" TextOptions.TextFormattingMode="Display"
+        Icon="Assets/app.ico">
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="40" ResizeBorderThickness="6" GlassFrameThickness="0" CornerRadius="0" UseAeroCaptionButtons="False"/>
+    </WindowChrome.WindowChrome>
+
+    <Window.Resources>
+        <local:BoolVisibilityConverter x:Key="Visible"/>
+        <local:StateBrushConverter x:Key="StateBrush"/>
+        <local:LogKindBrushConverter x:Key="LogBrush"/>
+        <local:TileBrushConverter x:Key="TileBrush"/>
+        <local:InitialsConverter x:Key="Initials"/>
+
+        <Style x:Key="StarToggle" TargetType="ToggleButton">
+            <Setter Property="Width" Value="26"/>
+            <Setter Property="Height" Value="26"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Foreground" Value="{StaticResource Faint}"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border Background="Transparent">
+                            <TextBlock x:Name="Star" Text="&#xE734;" Style="{StaticResource Icon}" FontSize="13" Foreground="{TemplateBinding Foreground}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter Property="Foreground" Value="{StaticResource Warn}"/></Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Star" Property="Text" Value="&#xE735;"/>
+                                <Setter Property="Foreground" Value="{StaticResource Warn}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <DataTemplate x:Key="AppTile" DataType="models:TvApplication">
+            <Button x:Name="Tile" AutomationProperties.Name="{Binding Label}" Width="150" Height="116" Margin="0,0,10,10" Padding="0" Tag="{Binding}" Click="LaunchApp_Click"
+                    HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" ToolTip="{Binding Label}">
+                <Grid>
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <Border Width="44" Height="44" CornerRadius="9" Background="{Binding Label, Converter={StaticResource TileBrush}}">
+                            <TextBlock Text="{Binding Initials}" Foreground="White" FontWeight="SemiBold" FontSize="16" FontFamily="Segoe UI" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <TextBlock Text="{Binding Label}" Margin="8,9,8,0" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="132"/>
+                        <TextBlock Text="{Binding StateLabel}" Foreground="{DynamicResource Accent}" FontSize="9" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                    </StackPanel>
+                    <ToggleButton Style="{StaticResource StarToggle}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="3"
+                                  IsChecked="{Binding IsFavorite, Mode=TwoWay}" Tag="{Binding}" Click="FavoriteToggle_Click" ToolTip="Pin to Overview"/>
+                </Grid>
+            </Button>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsRunning}" Value="True">
+                    <Setter TargetName="Tile" Property="BorderBrush" Value="{DynamicResource Accent}"/>
+                    <Setter TargetName="Tile" Property="Background" Value="{DynamicResource AccentSoft}"/>
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+
+        <DataTemplate x:Key="AppChip" DataType="models:TvApplication">
+            <Button x:Name="Chip" AutomationProperties.Name="{Binding Label}" Tag="{Binding}" Click="LaunchApp_Click" Margin="0,0,8,8" Padding="8,6,12,6" ToolTip="{Binding Label}">
+                <StackPanel Orientation="Horizontal">
+                    <Border Width="24" Height="24" CornerRadius="5" Background="{Binding Label, Converter={StaticResource TileBrush}}">
+                        <TextBlock Text="{Binding Initials}" Foreground="White" FontSize="10" FontWeight="SemiBold" FontFamily="Segoe UI" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <TextBlock Text="{Binding Label}" Margin="9,0,0,0" VerticalAlignment="Center" MaxWidth="120" TextTrimming="CharacterEllipsis"/>
+                </StackPanel>
+            </Button>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsRunning}" Value="True">
+                    <Setter TargetName="Chip" Property="BorderBrush" Value="{DynamicResource Accent}"/>
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+
+        <DataTemplate x:Key="ChannelRow" DataType="models:TvChannel">
+            <Button x:Name="Row" Tag="{Binding}" Click="Channel_Click" AutomationProperties.Name="{Binding Name}" HorizontalContentAlignment="Stretch" Padding="10,7" Margin="0,0,4,2" Background="Transparent" BorderBrush="Transparent">
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="52"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                    <TextBlock Text="{Binding PresetLabel}" Foreground="{DynamicResource Accent}"/>
+                    <TextBlock Grid.Column="1" Text="{Binding Name}" TextTrimming="CharacterEllipsis"/>
+                    <TextBlock x:Name="OnAir" Grid.Column="2" Text="● ON AIR" Foreground="{DynamicResource Accent}" FontSize="10" VerticalAlignment="Center" Visibility="Collapsed"/>
+                </Grid>
+            </Button>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsCurrent}" Value="True">
+                    <Setter TargetName="Row" Property="Background" Value="{DynamicResource AccentSoft}"/>
+                    <Setter TargetName="OnAir" Property="Visibility" Value="Visible"/>
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+
+        <DataTemplate x:Key="StyleChip" DataType="local:AmbilightStyleItem">
+            <Button x:Name="Chip" Content="{Binding Style.Label}" Tag="{Binding}" Style="{StaticResource ChipButton}" Click="AmbilightStyle_Click"/>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                    <Setter TargetName="Chip" Property="Foreground" Value="{DynamicResource Accent}"/>
+                    <Setter TargetName="Chip" Property="BorderBrush" Value="{DynamicResource Accent}"/>
+                    <Setter TargetName="Chip" Property="Background" Value="{DynamicResource AccentSoft}"/>
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+
+        <DataTemplate x:Key="SavedTvRow" DataType="models:TvRecord">
+            <Border x:Name="Row" Background="{StaticResource Inset}" BorderBrush="{StaticResource LineSoft}" BorderThickness="1" CornerRadius="3" Padding="12,9" Margin="0,0,0,6">
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                    <TextBlock x:Name="Glyph" Text="&#xE7F4;" Style="{StaticResource Icon}" FontSize="18" Foreground="{StaticResource Dim}"/>
+                    <StackPanel Grid.Column="1" Margin="14,0" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis"/>
+                            <Border x:Name="ActiveBadge" Style="{StaticResource Badge}" Margin="10,0,0,0" Padding="5,0" Visibility="Collapsed">
+                                <TextBlock Text="ACTIVE" FontSize="9" Foreground="{DynamicResource Accent}"/>
+                            </Border>
+                        </StackPanel>
+                        <TextBlock Foreground="{StaticResource Dim}" FontSize="11" Margin="0,3,0,0" TextTrimming="CharacterEllipsis">
+                            <TextBlock.Text><MultiBinding StringFormat="{}{0}  ·  {1}  ·  last seen {2}"><Binding Path="Host"/><Binding Path="ModelLabel"/><Binding Path="LastSeen"/></MultiBinding></TextBlock.Text>
+                        </TextBlock>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Content="CONNECT" Tag="{Binding}" Margin="0,0,6,0" Padding="10,6" Click="SavedTV_Click"/>
+                        <Button Tag="{Binding}" Margin="0,0,6,0" Padding="9,6" Click="RenameTV_Click" ToolTip="Rename"><TextBlock Text="&#xE70F;" Style="{StaticResource Icon}" FontSize="12"/></Button>
+                        <Button Tag="{Binding}" Style="{StaticResource DangerButton}" Padding="9,6" Click="RemoveTV_Click" ToolTip="Remove"><TextBlock Text="&#xE74D;" Style="{StaticResource Icon}" FontSize="12"/></Button>
+                    </StackPanel>
+                </Grid>
+            </Border>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsActive}" Value="True">
+                    <Setter TargetName="Row" Property="BorderBrush" Value="{DynamicResource AccentLine}"/>
+                    <Setter TargetName="Glyph" Property="Foreground" Value="{DynamicResource Accent}"/>
+                    <Setter TargetName="ActiveBadge" Property="Visibility" Value="Visible"/>
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+
+        <DataTemplate x:Key="FoundTvRow" DataType="models:DiscoveryResult">
+            <Border Background="{StaticResource Inset}" BorderBrush="{StaticResource LineSoft}" BorderThickness="1" CornerRadius="3" Padding="12,9" Margin="0,0,0,6">
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                    <TextBlock Text="&#xE968;" Style="{StaticResource Icon}" FontSize="18" Foreground="{DynamicResource Accent}"/>
+                    <StackPanel Grid.Column="1" Margin="14,0" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding Name}"/>
+                        <TextBlock Text="{Binding Details}" Foreground="{StaticResource Dim}" FontSize="11" Margin="0,3,0,0" TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
+                    <Button Grid.Column="2" Content="[ ADD &amp; CONNECT ]" Tag="{Binding}" Style="{StaticResource PrimaryButton}" VerticalAlignment="Center" Click="FoundTV_Click"/>
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <DataTemplate x:Key="SidebarTv" DataType="models:TvRecord">
+            <Button x:Name="B" Tag="{Binding}" Click="SavedTV_Click" Style="{StaticResource GhostButton}" HorizontalContentAlignment="Stretch" Padding="8,6" Margin="0,1" ToolTip="{Binding Host}">
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="14"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <Ellipse x:Name="Dot" Width="6" Height="6" Fill="{StaticResource Faint}" HorizontalAlignment="Left"/>
+                    <TextBlock x:Name="Label" Grid.Column="1" Text="{Binding DisplayName}" Foreground="{StaticResource Dim}" TextTrimming="CharacterEllipsis" FontSize="12"/>
+                </Grid>
+            </Button>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsActive}" Value="True">
+                    <Setter TargetName="Dot" Property="Fill" Value="{Binding StateBadge, Converter={StaticResource StateBrush}}"/>
+                    <Setter TargetName="Label" Property="Foreground" Value="{StaticResource Text}"/>
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+
+        <DataTemplate x:Key="LogRow" DataType="models:LogEntry">
+            <Grid Margin="0,1">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="78"/><ColumnDefinition Width="52"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <TextBlock Text="{Binding TimeLabel}" Foreground="{StaticResource Faint}"/>
+                <TextBlock Grid.Column="1" Text="{Binding KindLabel}" Foreground="{Binding Kind, Converter={StaticResource LogBrush}}"/>
+                <TextBlock Grid.Column="2" Text="{Binding Text}" TextWrapping="Wrap"/>
+            </Grid>
+        </DataTemplate>
+
+        <ItemsPanelTemplate x:Key="WrapItems"><WrapPanel/></ItemsPanelTemplate>
+    </Window.Resources>
+
+    <Border x:Name="RootBorder" BorderBrush="{StaticResource Line}" BorderThickness="1">
+        <Grid>
+            <Grid.RowDefinitions><RowDefinition Height="40"/><RowDefinition Height="*"/><RowDefinition Height="26"/></Grid.RowDefinitions>
+
+            <!-- Title bar (WindowChrome handles dragging, snapping and double-click maximize) -->
+            <Grid Grid.Row="0" Background="{StaticResource Panel}">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="14,0">
+                    <Image Source="Assets/app.ico" Width="18" Height="18" Margin="0,0,10,0" RenderOptions.BitmapScalingMode="HighQuality"/>
+                    <TextBlock Text="PHILIPS CONTROL" Foreground="{DynamicResource Accent}" FontWeight="Bold" VerticalAlignment="Center"/>
+                    <TextBlock Text="  //  LOCAL TV TERMINAL" Foreground="{StaticResource Faint}" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="TitleCursor" Text=" _" Foreground="{DynamicResource Accent}" VerticalAlignment="Center"/>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,16,0">
+                    <Ellipse x:Name="HeaderOnlineDot" Width="8" Height="8" Fill="{StaticResource Faint}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <TextBlock x:Name="HeaderStatus" Text="Initializing..." Foreground="{StaticResource Dim}" VerticalAlignment="Center"/>
+                </StackPanel>
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <Button Content="&#xE921;" Style="{StaticResource ChromeButton}" WindowChrome.IsHitTestVisibleInChrome="True" Click="Minimize_Click" ToolTip="Minimize"/>
+                    <Button x:Name="MaxButton" Content="&#xE922;" Style="{StaticResource ChromeButton}" WindowChrome.IsHitTestVisibleInChrome="True" Click="Maximize_Click" ToolTip="Maximize"/>
+                    <Button Content="&#xE8BB;" Style="{StaticResource CloseChromeButton}" WindowChrome.IsHitTestVisibleInChrome="True" Click="Close_Click" ToolTip="Close"/>
+                </StackPanel>
+            </Grid>
+
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="214"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+
+                <!-- Sidebar -->
+                <Border Grid.Column="0" Background="{StaticResource Sidebar}" BorderBrush="{StaticResource Line}" BorderThickness="0,0,1,0" Padding="10">
+                    <Grid>
+                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="COMMANDS" Style="{StaticResource SectionLabel}" Margin="10,8,0,10"/>
+                            <RadioButton x:Name="NavOverview" Content="Overview" Tag="&#xE80F;" CommandParameter="overview" Style="{StaticResource NavItem}" Checked="Nav_Checked" ToolTip="Ctrl+1"/>
+                            <RadioButton x:Name="NavRemote" Content="Remote" Tag="&#xE951;" CommandParameter="remote" Style="{StaticResource NavItem}" Checked="Nav_Checked" ToolTip="Ctrl+2"/>
+                            <RadioButton x:Name="NavMedia" Content="Media &amp; TV" Tag="&#xE714;" CommandParameter="media" Style="{StaticResource NavItem}" Checked="Nav_Checked" ToolTip="Ctrl+3"/>
+                            <RadioButton x:Name="NavApps" Content="Apps" Tag="&#xE71D;" CommandParameter="apps" Style="{StaticResource NavItem}" Checked="Nav_Checked" ToolTip="Ctrl+4"/>
+                            <RadioButton x:Name="NavAmbilight" Content="Ambilight" Tag="&#xE706;" CommandParameter="ambilight" Style="{StaticResource NavItem}" Checked="Nav_Checked" ToolTip="Ctrl+5"/>
+                            <RadioButton x:Name="NavLog" Content="Console" Tag="&#xE756;" CommandParameter="log" Style="{StaticResource NavItem}" Checked="Nav_Checked" ToolTip="Ctrl+6"/>
+                            <RadioButton x:Name="NavSettings" Content="Settings" Tag="&#xE713;" CommandParameter="settings" Style="{StaticResource NavItem}" Checked="Nav_Checked" ToolTip="Ctrl+7"/>
+                        </StackPanel>
+                        <StackPanel Grid.Row="2" Margin="0,8,0,0">
+                            <Border Height="1" Background="{StaticResource Line}" Margin="0,0,0,10"/>
+                            <TextBlock Text="TELEVISIONS" Style="{StaticResource SectionLabel}" Margin="10,0,0,6"/>
+                            <ItemsControl x:Name="SidebarTvList" ItemTemplate="{StaticResource SidebarTv}"/>
+                            <Button Margin="0,8,0,0" Click="OpenSettings_Click">
+                                <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE710;" Style="{StaticResource Icon}" FontSize="11"/><TextBlock Text="ADD TV" Margin="8,0,0,0"/></StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <Grid Grid.Column="1" Margin="24,16,24,0" MaxWidth="1680" HorizontalAlignment="Stretch">
+                    <Grid.RowDefinitions><RowDefinition Height="64"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <Grid Grid.Row="0">
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock x:Name="PageEyebrow" Text="PHILIPS TV / OVERVIEW" Style="{StaticResource SectionLabel}"/>
+                            <TextBlock x:Name="PageHeading" Text="Overview" FontSize="22" FontWeight="Bold" Margin="0,4,0,0"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <Border x:Name="SleepBadge" Style="{StaticResource Badge}" Margin="0,0,10,0" Visibility="Collapsed" Cursor="Hand" MouseLeftButtonUp="SleepBadge_Click" ToolTip="Sleep timer active. Click to cancel.">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE708;" Style="{StaticResource Icon}" FontSize="11" Foreground="{DynamicResource Accent}"/>
+                                    <TextBlock x:Name="SleepBadgeText" Text="30:00" Foreground="{DynamicResource Accent}" Margin="6,0,0,0" FontSize="11"/>
+                                </StackPanel>
+                            </Border>
+                            <Button Click="Refresh_Click" Margin="0,0,8,0" ToolTip="Refresh (F5)">
+                                <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE72C;" Style="{StaticResource Icon}" FontSize="12"/><TextBlock Text="REFRESH" Margin="8,0,0,0"/></StackPanel>
+                            </Button>
+                            <Button x:Name="PowerButton" Style="{StaticResource PrimaryButton}" Click="PowerButton_Click" ToolTip="Power (P)">
+                                <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE7E8;" Style="{StaticResource Icon}" FontSize="12"/><TextBlock x:Name="PowerButtonText" Text="POWER ON" Margin="8,0,0,0"/></StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+
+                    <Grid Grid.Row="1">
+                        <!-- ============ OVERVIEW ============ -->
+                        <ScrollViewer x:Name="OverviewPage" VerticalScrollBarVisibility="Auto" Padding="0,0,8,0">
+                            <Grid Margin="0,0,0,16">
+                                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="3*"/><ColumnDefinition Width="14"/><ColumnDefinition Width="2*" MinWidth="310"/></Grid.ColumnDefinitions>
+
+                                <Border x:Name="Banner" Grid.ColumnSpan="3" Style="{StaticResource Card}" Padding="14,12" Visibility="Collapsed" BorderBrush="{StaticResource Warn}" Background="#161409">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                        <TextBlock Text="&#xE7BA;" Style="{StaticResource Icon}" FontSize="16" Foreground="{StaticResource Warn}"/>
+                                        <StackPanel Grid.Column="1" Margin="14,0">
+                                            <TextBlock x:Name="BannerTitle" Text="TV OFFLINE" Foreground="{StaticResource Warn}" FontWeight="Bold"/>
+                                            <TextBlock x:Name="BannerText" Text="" Style="{StaticResource Hint}" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                        <Button x:Name="BannerAction" Grid.Column="2" Content="[ WAKE TV ]" VerticalAlignment="Center" Click="BannerAction_Click"/>
+                                    </Grid>
+                                </Border>
+
+                                <StackPanel Grid.Row="1" Grid.Column="0">
+                                    <!-- Device -->
+                                    <Border Style="{StaticResource Card}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                            <Border Width="60" Height="60" CornerRadius="6" Background="{StaticResource Inset}" BorderBrush="{StaticResource Line}" BorderThickness="1">
+                                                <TextBlock Text="&#xE7F4;" Style="{StaticResource Icon}" FontSize="28" Foreground="{Binding StateBadge, Converter={StaticResource StateBrush}}"/>
+                                            </Border>
+                                            <StackPanel Grid.Column="1" Margin="16,0" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding DisplayName}" FontSize="21" FontWeight="Bold" TextTrimming="CharacterEllipsis"/>
+                                                <TextBlock Text="{Binding ModelLabel}" Foreground="{StaticResource Dim}" Margin="0,4,0,0" TextTrimming="CharacterEllipsis"/>
+                                            </StackPanel>
+                                            <Border Grid.Column="2" Style="{StaticResource Badge}" Background="Transparent" BorderBrush="{Binding StateBadge, Converter={StaticResource StateBrush}}" Padding="9,4">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Ellipse Width="7" Height="7" Fill="{Binding StateBadge, Converter={StaticResource StateBrush}}" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="{Binding StateBadge}" Foreground="{Binding StateBadge, Converter={StaticResource StateBrush}}" FontSize="11" FontWeight="Bold" Margin="7,0,0,0"/>
+                                                </StackPanel>
+                                            </Border>
+                                            <UniformGrid Grid.Row="1" Grid.ColumnSpan="3" Columns="4" Margin="0,18,0,0">
+                                                <StackPanel><TextBlock Text="POWER" Style="{StaticResource Caption}"/><TextBlock Text="{Binding PowerLabel}" Style="{StaticResource DataValue}"/></StackPanel>
+                                                <StackPanel><TextBlock Text="NETWORK HOST" Style="{StaticResource Caption}"/><TextBlock Text="{Binding Host}" Style="{StaticResource DataValue}"/></StackPanel>
+                                                <StackPanel><TextBlock Text="AMBILIGHT" Style="{StaticResource Caption}"/><TextBlock Text="{Binding AmbilightLabel}" Style="{StaticResource DataValue}"/></StackPanel>
+                                                <StackPanel><TextBlock Text="LAST SEEN" Style="{StaticResource Caption}"/><TextBlock Text="{Binding LastSeen}" Style="{StaticResource DataValue}" FontSize="12"/></StackPanel>
+                                            </UniformGrid>
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- Now playing -->
+                                    <Border Style="{StaticResource Card}">
+                                        <StackPanel>
+                                            <TextBlock Text="NOW ON TV" Style="{StaticResource SectionLabel}"/>
+                                            <Grid Margin="0,14,0,0">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                <Border Width="58" Height="58" CornerRadius="11" Background="{Binding CurrentApp, Converter={StaticResource TileBrush}}">
+                                                    <TextBlock Text="{Binding CurrentApp, Converter={StaticResource Initials}}" Foreground="White" FontFamily="Segoe UI" FontWeight="SemiBold" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                                <StackPanel Grid.Column="1" Margin="16,0" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding CurrentApp}" FontSize="24" FontWeight="Bold" Foreground="{DynamicResource Accent}" TextTrimming="CharacterEllipsis"/>
+                                                    <TextBlock Text="{Binding CurrentActivity}" Foreground="{StaticResource Dim}" Margin="0,3,0,0"/>
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <Button Tag="Rewind" Click="RemoteKey_Click" Style="{StaticResource GhostButton}" Padding="9" ToolTip="Rewind"><TextBlock Text="&#xEB9E;" Style="{StaticResource Icon}"/></Button>
+                                                    <Button Tag="PlayPause" Click="RemoteKey_Click" Padding="12,9" ToolTip="Play / Pause (Space)"><TextBlock Text="&#xE768;" Style="{StaticResource Icon}" Foreground="{DynamicResource Accent}"/></Button>
+                                                    <Button Tag="FastForward" Click="RemoteKey_Click" Style="{StaticResource GhostButton}" Padding="9" ToolTip="Fast forward"><TextBlock Text="&#xEB9D;" Style="{StaticResource Icon}"/></Button>
+                                                </StackPanel>
+                                            </Grid>
+                                            <UniformGrid Columns="3" Margin="0,18,0,0">
+                                                <StackPanel><TextBlock Text="SOURCE" Style="{StaticResource Caption}"/><TextBlock Text="{Binding CurrentInput}" Style="{StaticResource DataValue}"/></StackPanel>
+                                                <StackPanel><TextBlock Text="CHANNEL" Style="{StaticResource Caption}"/><TextBlock Text="{Binding CurrentChannel}" Style="{StaticResource DataValue}"/></StackPanel>
+                                                <StackPanel><TextBlock Text="PLAYBACK" Style="{StaticResource Caption}"/><TextBlock Text="{Binding PlaybackStatus}" Style="{StaticResource DataValue}" TextWrapping="Wrap" TextTrimming="None"/></StackPanel>
+                                            </UniformGrid>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Pinned apps -->
+                                    <Border Style="{StaticResource Card}">
+                                        <StackPanel>
+                                            <Grid>
+                                                <TextBlock Text="PINNED APPS" Style="{StaticResource SectionLabel}"/>
+                                                <Button Content="ALL APPS →" Style="{StaticResource GhostButton}" Padding="4,0" HorizontalAlignment="Right" Foreground="{StaticResource Dim}" Tag="apps" Click="GoToPage_Click"/>
+                                            </Grid>
+                                            <ItemsControl x:Name="PinnedAppsList" ItemTemplate="{StaticResource AppChip}" ItemsPanel="{StaticResource WrapItems}" Margin="0,12,0,0"/>
+                                            <TextBlock x:Name="NoPinnedText" Text="Star apps on the Apps page to launch them from here with one click." Style="{StaticResource Hint}" Margin="0,4,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+
+                                <StackPanel Grid.Row="1" Grid.Column="2">
+                                    <!-- Volume -->
+                                    <Border Style="{StaticResource Card}" MouseWheel="Volume_MouseWheel" Background="{StaticResource Panel}">
+                                        <StackPanel>
+                                            <Grid>
+                                                <TextBlock Text="VOLUME" Style="{StaticResource SectionLabel}"/>
+                                                <Border Style="{StaticResource Badge}" HorizontalAlignment="Right" BorderBrush="{StaticResource Danger}" Background="Transparent" Padding="6,1"
+                                                        Visibility="{Binding IsMuted, Converter={StaticResource Visible}}">
+                                                    <TextBlock Text="MUTED" Foreground="{StaticResource Danger}" FontSize="10"/>
+                                                </Border>
+                                            </Grid>
+                                            <StackPanel Orientation="Horizontal" Margin="0,8,0,4">
+                                                <TextBlock Text="{Binding Volume}" FontSize="48" FontWeight="Bold" Foreground="{DynamicResource Accent}"/>
+                                                <TextBlock Text="{Binding MaxVolume, StringFormat=/ {0}}" Foreground="{StaticResource Faint}" FontSize="14" VerticalAlignment="Bottom" Margin="8,0,0,12"/>
+                                            </StackPanel>
+                                            <Slider x:Name="VolumeSlider" Minimum="0" Maximum="60" SmallChange="1" LargeChange="5" ValueChanged="VolumeSlider_ValueChanged"/>
+                                            <UniformGrid Columns="3" Margin="-3,10,-3,0">
+                                                <Button Tag="VolumeDown" Click="RemoteKey_Click" Margin="3" ToolTip="Volume down (-)"><TextBlock Text="&#xE993;" Style="{StaticResource Icon}"/></Button>
+                                                <Button Tag="Mute" Click="RemoteKey_Click" Margin="3" ToolTip="Mute (M)"><TextBlock Text="&#xE74F;" Style="{StaticResource Icon}"/></Button>
+                                                <Button Tag="VolumeUp" Click="RemoteKey_Click" Margin="3" ToolTip="Volume up (+)"><TextBlock Text="&#xE995;" Style="{StaticResource Icon}"/></Button>
+                                            </UniformGrid>
+                                            <TextBlock Text="Tip: scroll the mouse wheel over this card." Style="{StaticResource Hint}" Foreground="{StaticResource Faint}" Margin="0,10,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Quick actions -->
+                                    <Border Style="{StaticResource Card}">
+                                        <StackPanel>
+                                            <TextBlock Text="QUICK ACTIONS" Style="{StaticResource SectionLabel}"/>
+                                            <UniformGrid Columns="3" Margin="-3,10,-3,0">
+                                                <Button Tag="Home" Click="RemoteKey_Click" Margin="3" Padding="6,10"><StackPanel><TextBlock Text="&#xE80F;" Style="{StaticResource Icon}" FontSize="16"/><TextBlock Text="HOME" FontSize="10" Margin="0,6,0,0" HorizontalAlignment="Center"/></StackPanel></Button>
+                                                <Button Tag="Back" Click="RemoteKey_Click" Margin="3" Padding="6,10"><StackPanel><TextBlock Text="&#xE72B;" Style="{StaticResource Icon}" FontSize="16"/><TextBlock Text="BACK" FontSize="10" Margin="0,6,0,0" HorizontalAlignment="Center"/></StackPanel></Button>
+                                                <Button Tag="Source" Click="RemoteKey_Click" Margin="3" Padding="6,10"><StackPanel><TextBlock Text="&#xE8AB;" Style="{StaticResource Icon}" FontSize="16"/><TextBlock Text="SOURCE" FontSize="10" Margin="0,6,0,0" HorizontalAlignment="Center"/></StackPanel></Button>
+                                                <Button Tag="WatchTV" Click="RemoteKey_Click" Margin="3" Padding="6,10"><StackPanel><TextBlock Text="&#xE7F4;" Style="{StaticResource Icon}" FontSize="16"/><TextBlock Text="LIVE TV" FontSize="10" Margin="0,6,0,0" HorizontalAlignment="Center"/></StackPanel></Button>
+                                                <Button Click="AmbilightQuickToggle_Click" Margin="3" Padding="6,10"><StackPanel><TextBlock Text="&#xE706;" Style="{StaticResource Icon}" FontSize="16"/><TextBlock Text="AMBILIGHT" FontSize="10" Margin="0,6,0,0" HorizontalAlignment="Center"/></StackPanel></Button>
+                                                <Button Tag="remote" Click="GoToPage_Click" Margin="3" Padding="6,10"><StackPanel><TextBlock Text="&#xE951;" Style="{StaticResource Icon}" FontSize="16"/><TextBlock Text="REMOTE" FontSize="10" Margin="0,6,0,0" HorizontalAlignment="Center"/></StackPanel></Button>
+                                            </UniformGrid>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Sleep timer -->
+                                    <Border Style="{StaticResource Card}">
+                                        <StackPanel>
+                                            <Grid>
+                                                <TextBlock Text="SLEEP TIMER" Style="{StaticResource SectionLabel}"/>
+                                                <TextBlock Text="&#xE708;" Style="{StaticResource Icon}" HorizontalAlignment="Right" Foreground="{StaticResource Faint}"/>
+                                            </Grid>
+                                            <WrapPanel x:Name="SleepChips" Margin="0,12,0,0">
+                                                <RadioButton Content="OFF" CommandParameter="0" GroupName="Sleep" Style="{StaticResource Chip}" Click="SleepChip_Click" IsChecked="True"/>
+                                                <RadioButton Content="15m" CommandParameter="15" GroupName="Sleep" Style="{StaticResource Chip}" Click="SleepChip_Click"/>
+                                                <RadioButton Content="30m" CommandParameter="30" GroupName="Sleep" Style="{StaticResource Chip}" Click="SleepChip_Click"/>
+                                                <RadioButton Content="60m" CommandParameter="60" GroupName="Sleep" Style="{StaticResource Chip}" Click="SleepChip_Click"/>
+                                                <RadioButton Content="90m" CommandParameter="90" GroupName="Sleep" Style="{StaticResource Chip}" Click="SleepChip_Click"/>
+                                                <RadioButton Content="2h" CommandParameter="120" GroupName="Sleep" Style="{StaticResource Chip}" Click="SleepChip_Click"/>
+                                            </WrapPanel>
+                                            <TextBlock x:Name="SleepStatusText" Text="The TV switches to standby when the timer ends." Style="{StaticResource Hint}" Margin="0,4,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+                            </Grid>
+                        </ScrollViewer>
+
+                        <!-- ============ REMOTE ============ -->
+                        <ScrollViewer x:Name="RemotePage" VerticalScrollBarVisibility="Auto" Visibility="Collapsed" Padding="0,0,8,0">
+                            <Grid Margin="0,0,0,16">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="20"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <Border Width="336" CornerRadius="22" Background="#0B0F0B" BorderBrush="{StaticResource Line}" BorderThickness="1" Padding="20,18" VerticalAlignment="Top">
+                                    <StackPanel>
+                                        <Grid>
+                                            <Button Tag="Standby" Click="RemoteKey_Click" HorizontalAlignment="Left" Width="46" Height="46" Padding="0" Foreground="{StaticResource Danger}" ToolTip="Standby key (P toggles power)"><TextBlock Text="&#xE7E8;" Style="{StaticResource Icon}" FontSize="16"/></Button>
+                                            <TextBlock Text="P H I L I P S" Foreground="{StaticResource Faint}" FontSize="10" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            <Button Tag="Source" Click="RemoteKey_Click" HorizontalAlignment="Right" Height="46" Padding="12,0" ToolTip="Source (S)"><TextBlock Text="SOURCE"/></Button>
+                                        </Grid>
+
+                                        <Grid Margin="0,18,0,0" Height="210">
+                                            <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+                                            <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                            <Ellipse Grid.RowSpan="3" Grid.ColumnSpan="3" Width="206" Height="206" Fill="#0E140E" Stroke="{StaticResource LineSoft}" StrokeThickness="1"/>
+                                            <Button Grid.Row="0" Grid.Column="0" Tag="Back" Click="RemoteKey_Click" Style="{StaticResource GhostButton}" VerticalAlignment="Top" HorizontalAlignment="Left" ToolTip="Back (Backspace / Esc)"><TextBlock Text="&#xE72B;" Style="{StaticResource Icon}" Foreground="{StaticResource Dim}"/></Button>
+                                            <Button Grid.Row="0" Grid.Column="2" Tag="Home" Click="RemoteKey_Click" Style="{StaticResource GhostButton}" VerticalAlignment="Top" HorizontalAlignment="Right" ToolTip="Home (H)"><TextBlock Text="&#xE80F;" Style="{StaticResource Icon}" Foreground="{StaticResource Dim}"/></Button>
+                                            <Button Grid.Row="2" Grid.Column="0" Tag="Info" Click="RemoteKey_Click" Style="{StaticResource GhostButton}" VerticalAlignment="Bottom" HorizontalAlignment="Left" ToolTip="Info (I)"><TextBlock Text="&#xE946;" Style="{StaticResource Icon}" Foreground="{StaticResource Dim}"/></Button>
+                                            <Button Grid.Row="2" Grid.Column="2" Tag="Options" Click="RemoteKey_Click" Style="{StaticResource GhostButton}" VerticalAlignment="Bottom" HorizontalAlignment="Right" ToolTip="Options (O)"><TextBlock Text="&#xE712;" Style="{StaticResource Icon}" Foreground="{StaticResource Dim}"/></Button>
+                                            <Button Grid.Row="0" Grid.Column="1" Tag="CursorUp" Click="RemoteKey_Click" Style="{StaticResource GhostButton}" Width="60" Height="54" VerticalAlignment="Bottom" ToolTip="Up"><TextBlock Text="&#xE70E;" Style="{StaticResource Icon}" FontSize="18"/></Button>
+                                            <Button Grid.Row="1" Grid.Column="0" Tag="CursorLeft" Click="RemoteKey_Click" Style="{StaticResource GhostButton}" Width="54" Height="60" HorizontalAlignment="Right" ToolTip="Left"><TextBlock Text="&#xE76B;" Style="{StaticResource Icon}" FontSize="18"/></Button>
+                                            <Button Grid.Row="1" Grid.Column="1" Tag="Confirm" Click="RemoteKey_Click" Style="{StaticResource OkButton}" Width="74" Height="74" Margin="0" Content="OK" ToolTip="OK (Enter)"/>
+                                            <Button Grid.Row="1" Grid.Column="2" Tag="CursorRight" Click="RemoteKey_Click" Style="{StaticResource GhostButton}" Width="54" Height="60" HorizontalAlignment="Left" ToolTip="Right"><TextBlock Text="&#xE76C;" Style="{StaticResource Icon}" FontSize="18"/></Button>
+                                            <Button Grid.Row="2" Grid.Column="1" Tag="CursorDown" Click="RemoteKey_Click" Style="{StaticResource GhostButton}" Width="60" Height="54" VerticalAlignment="Top" ToolTip="Down"><TextBlock Text="&#xE70D;" Style="{StaticResource Icon}" FontSize="18"/></Button>
+                                        </Grid>
+
+                                        <Grid Margin="0,18,0,0">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="74"/><ColumnDefinition Width="*"/><ColumnDefinition Width="74"/></Grid.ColumnDefinitions>
+                                            <Border CornerRadius="30" Background="#0F150F" BorderBrush="{StaticResource Line}" BorderThickness="1">
+                                                <StackPanel>
+                                                    <Button Tag="VolumeUp" Click="RemoteKey_Click" Style="{StaticResource GhostButton}" Height="48" ToolTip="Volume up (+)"><TextBlock Text="&#xE710;" Style="{StaticResource Icon}"/></Button>
+                                                    <TextBlock Text="VOL" Foreground="{StaticResource Faint}" FontSize="10" HorizontalAlignment="Center" Margin="0,2"/>
+                                                    <Button Tag="VolumeDown" Click="RemoteKey_Click" Style="{StaticResource GhostButton}" Height="48" ToolTip="Volume down (-)"><TextBlock Text="&#xE738;" Style="{StaticResource Icon}"/></Button>
+                                                </StackPanel>
+                                            </Border>
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="10,0">
+                                                <Button Tag="Mute" Click="RemoteKey_Click" Style="{StaticResource KeyButton}" ToolTip="Mute (M)"><StackPanel Orientation="Horizontal"><TextBlock Text="&#xE74F;" Style="{StaticResource Icon}"/><TextBlock Text="MUTE" Margin="8,0,0,0"/></StackPanel></Button>
+                                                <Button Tag="AmbilightOnOff" Click="RemoteKey_Click" Style="{StaticResource KeyButton}" ToolTip="Ambilight on/off (A)"><StackPanel Orientation="Horizontal"><TextBlock Text="&#xE706;" Style="{StaticResource Icon}"/><TextBlock Text="AMBI" Margin="8,0,0,0"/></StackPanel></Button>
+                                            </StackPanel>
+                                            <Border Grid.Column="2" CornerRadius="30" Background="#0F150F" BorderBrush="{StaticResource Line}" BorderThickness="1">
+                                                <StackPanel>
+                                                    <Button Tag="ChannelStepUp" Click="RemoteKey_Click" Style="{StaticResource GhostButton}" Height="48" ToolTip="Channel up (Page Up)"><TextBlock Text="&#xE70E;" Style="{StaticResource Icon}"/></Button>
+                                                    <TextBlock Text="CH" Foreground="{StaticResource Faint}" FontSize="10" HorizontalAlignment="Center" Margin="0,2"/>
+                                                    <Button Tag="ChannelStepDown" Click="RemoteKey_Click" Style="{StaticResource GhostButton}" Height="48" ToolTip="Channel down (Page Down)"><TextBlock Text="&#xE70D;" Style="{StaticResource Icon}"/></Button>
+                                                </StackPanel>
+                                            </Border>
+                                        </Grid>
+
+                                        <UniformGrid Columns="5" Margin="-3,16,-3,0">
+                                            <Button Tag="Rewind" Click="RemoteKey_Click" Style="{StaticResource KeyButton}" ToolTip="Rewind"><TextBlock Text="&#xEB9E;" Style="{StaticResource Icon}"/></Button>
+                                            <Button Tag="PlayPause" Click="RemoteKey_Click" Style="{StaticResource KeyButton}" ToolTip="Play / Pause (Space)"><TextBlock Text="&#xE768;" Style="{StaticResource Icon}" Foreground="{DynamicResource Accent}"/></Button>
+                                            <Button Tag="FastForward" Click="RemoteKey_Click" Style="{StaticResource KeyButton}" ToolTip="Fast forward"><TextBlock Text="&#xEB9D;" Style="{StaticResource Icon}"/></Button>
+                                            <Button Tag="Stop" Click="RemoteKey_Click" Style="{StaticResource KeyButton}" ToolTip="Stop"><TextBlock Text="&#xE71A;" Style="{StaticResource Icon}"/></Button>
+                                            <Button Tag="Record" Click="RemoteKey_Click" Style="{StaticResource KeyButton}" ToolTip="Record"><TextBlock Text="&#xE7C8;" Style="{StaticResource Icon}" Foreground="{StaticResource Danger}"/></Button>
+                                        </UniformGrid>
+
+                                        <UniformGrid Columns="4" Margin="-3,8,-3,0">
+                                            <Button Tag="RedColour" Click="RemoteKey_Click" Style="{StaticResource KeyButton}" MinHeight="30" Padding="0" ToolTip="Red"><Border Width="34" Height="5" CornerRadius="2.5" Background="#FF6060"/></Button>
+                                            <Button Tag="GreenColour" Click="RemoteKey_Click" Style="{StaticResource KeyButton}" MinHeight="30" Padding="0" ToolTip="Green"><Border Width="34" Height="5" CornerRadius="2.5" Background="#57D98A"/></Button>
+                                            <Button Tag="YellowColour" Click="RemoteKey_Click" Style="{StaticResource KeyButton}" MinHeight="30" Padding="0" ToolTip="Yellow"><Border Width="34" Height="5" CornerRadius="2.5" Background="#F0D95B"/></Button>
+                                            <Button Tag="BlueColour" Click="RemoteKey_Click" Style="{StaticResource KeyButton}" MinHeight="30" Padding="0" ToolTip="Blue"><Border Width="34" Height="5" CornerRadius="2.5" Background="#72A8FF"/></Button>
+                                        </UniformGrid>
+                                    </StackPanel>
+                                </Border>
+
+                                <StackPanel Grid.Column="2" MaxWidth="560" HorizontalAlignment="Left">
+                                    <Border Style="{StaticResource Card}">
+                                        <StackPanel>
+                                            <TextBlock Text="NUMBER PAD" Style="{StaticResource SectionLabel}"/>
+                                            <UniformGrid Columns="3" Margin="-3,10,-3,0">
+                                                <Button Content="1" Tag="Digit1" Style="{StaticResource KeyButton}" Click="RemoteKey_Click"/><Button Content="2" Tag="Digit2" Style="{StaticResource KeyButton}" Click="RemoteKey_Click"/><Button Content="3" Tag="Digit3" Style="{StaticResource KeyButton}" Click="RemoteKey_Click"/>
+                                                <Button Content="4" Tag="Digit4" Style="{StaticResource KeyButton}" Click="RemoteKey_Click"/><Button Content="5" Tag="Digit5" Style="{StaticResource KeyButton}" Click="RemoteKey_Click"/><Button Content="6" Tag="Digit6" Style="{StaticResource KeyButton}" Click="RemoteKey_Click"/>
+                                                <Button Content="7" Tag="Digit7" Style="{StaticResource KeyButton}" Click="RemoteKey_Click"/><Button Content="8" Tag="Digit8" Style="{StaticResource KeyButton}" Click="RemoteKey_Click"/><Button Content="9" Tag="Digit9" Style="{StaticResource KeyButton}" Click="RemoteKey_Click"/>
+                                                <Button Content="TXT" Tag="Teletext" Style="{StaticResource KeyButton}" Click="RemoteKey_Click" Foreground="{StaticResource Dim}" ToolTip="Teletext"/><Button Content="0" Tag="Digit0" Style="{StaticResource KeyButton}" Click="RemoteKey_Click"/><Button Content="SUBS" Tag="Subtitle" Style="{StaticResource KeyButton}" Click="RemoteKey_Click" Foreground="{StaticResource Dim}" ToolTip="Subtitles"/>
+                                            </UniformGrid>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Style="{StaticResource Card}">
+                                        <StackPanel>
+                                            <TextBlock Text="MORE KEYS" Style="{StaticResource SectionLabel}"/>
+                                            <WrapPanel Margin="0,10,0,0">
+                                                <Button Content="ADJUST" Tag="Adjust" Margin="0,0,6,6" Click="RemoteKey_Click"/>
+                                                <Button Content="SEARCH" Tag="Find" Margin="0,0,6,6" Click="RemoteKey_Click"/>
+                                                <Button Content="LIVE TV" Tag="WatchTV" Margin="0,0,6,6" Click="RemoteKey_Click"/>
+                                                <Button Content="VIEW MODE" Tag="Viewmode" Margin="0,0,6,6" Click="RemoteKey_Click"/>
+                                                <Button Content="ONLINE" Tag="Online" Margin="0,0,6,6" Click="RemoteKey_Click"/>
+                                                <Button Content="|◀ PREV" Tag="Previous" Margin="0,0,6,6" Click="RemoteKey_Click"/>
+                                                <Button Content="NEXT ▶|" Tag="Next" Margin="0,0,6,6" Click="RemoteKey_Click"/>
+                                                <Button Content="PLAY" Tag="Play" Margin="0,0,6,6" Click="RemoteKey_Click"/>
+                                                <Button Content="PAUSE" Tag="Pause" Margin="0,0,6,6" Click="RemoteKey_Click"/>
+                                            </WrapPanel>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Style="{StaticResource Card}">
+                                        <StackPanel>
+                                            <Grid>
+                                                <TextBlock Text="KEYBOARD CONTROL" Style="{StaticResource SectionLabel}"/>
+                                                <TextBlock x:Name="KeyboardStateText" Text="ON" HorizontalAlignment="Right" Foreground="{DynamicResource Accent}" FontSize="11"/>
+                                            </Grid>
+                                            <TextBlock Text="Control the TV from your keyboard while this window has focus." Style="{StaticResource Hint}" Margin="0,6,0,10"/>
+                                            <Grid TextElement.FontSize="12">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="130"/><ColumnDefinition Width="*"/><ColumnDefinition Width="110"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                                <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+                                                <TextBlock Text="← ↑ → ↓" Foreground="{DynamicResource Accent}"/><TextBlock Grid.Column="1" Text="Navigate" Foreground="{StaticResource Dim}"/>
+                                                <TextBlock Grid.Column="2" Text="+  /  -" Foreground="{DynamicResource Accent}"/><TextBlock Grid.Column="3" Text="Volume" Foreground="{StaticResource Dim}"/>
+                                                <TextBlock Grid.Row="1" Text="Enter" Foreground="{DynamicResource Accent}" Margin="0,5,0,0"/><TextBlock Grid.Row="1" Grid.Column="1" Text="OK" Foreground="{StaticResource Dim}" Margin="0,5,0,0"/>
+                                                <TextBlock Grid.Row="1" Grid.Column="2" Text="M" Foreground="{DynamicResource Accent}" Margin="0,5,0,0"/><TextBlock Grid.Row="1" Grid.Column="3" Text="Mute" Foreground="{StaticResource Dim}" Margin="0,5,0,0"/>
+                                                <TextBlock Grid.Row="2" Text="Backspace / Esc" Foreground="{DynamicResource Accent}" Margin="0,5,0,0"/><TextBlock Grid.Row="2" Grid.Column="1" Text="Back" Foreground="{StaticResource Dim}" Margin="0,5,0,0"/>
+                                                <TextBlock Grid.Row="2" Grid.Column="2" Text="PgUp / PgDn" Foreground="{DynamicResource Accent}" Margin="0,5,0,0"/><TextBlock Grid.Row="2" Grid.Column="3" Text="Channel" Foreground="{StaticResource Dim}" Margin="0,5,0,0"/>
+                                                <TextBlock Grid.Row="3" Text="H" Foreground="{DynamicResource Accent}" Margin="0,5,0,0"/><TextBlock Grid.Row="3" Grid.Column="1" Text="Home" Foreground="{StaticResource Dim}" Margin="0,5,0,0"/>
+                                                <TextBlock Grid.Row="3" Grid.Column="2" Text="0 - 9" Foreground="{DynamicResource Accent}" Margin="0,5,0,0"/><TextBlock Grid.Row="3" Grid.Column="3" Text="Digits" Foreground="{StaticResource Dim}" Margin="0,5,0,0"/>
+                                                <TextBlock Grid.Row="4" Text="Space" Foreground="{DynamicResource Accent}" Margin="0,5,0,0"/><TextBlock Grid.Row="4" Grid.Column="1" Text="Play / Pause" Foreground="{StaticResource Dim}" Margin="0,5,0,0"/>
+                                                <TextBlock Grid.Row="4" Grid.Column="2" Text="S  /  I  /  O" Foreground="{DynamicResource Accent}" Margin="0,5,0,0"/><TextBlock Grid.Row="4" Grid.Column="3" Text="Source/Info/Opt" Foreground="{StaticResource Dim}" Margin="0,5,0,0"/>
+                                                <TextBlock Grid.Row="5" Text="P" Foreground="{DynamicResource Accent}" Margin="0,5,0,0"/><TextBlock Grid.Row="5" Grid.Column="1" Text="Power" Foreground="{StaticResource Dim}" Margin="0,5,0,0"/>
+                                                <TextBlock Grid.Row="5" Grid.Column="2" Text="Ctrl+1..7" Foreground="{DynamicResource Accent}" Margin="0,5,0,0"/><TextBlock Grid.Row="5" Grid.Column="3" Text="Pages" Foreground="{StaticResource Dim}" Margin="0,5,0,0"/>
+                                            </Grid>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+                            </Grid>
+                        </ScrollViewer>
+
+                        <!-- ============ MEDIA & TV ============ -->
+                        <Grid x:Name="MediaPage" Visibility="Collapsed" Margin="0,0,0,16">
+                            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                            <Border Style="{StaticResource Card}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock Text="CURRENT MEDIA SESSION" Style="{StaticResource SectionLabel}"/>
+                                        <TextBlock Text="{Binding CurrentApp}" FontSize="22" FontWeight="Bold" Margin="0,8,0,0" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="{Binding MediaSummary}" Margin="0,4,0,0" Foreground="{StaticResource Dim}" TextTrimming="CharacterEllipsis" ToolTip="{Binding MediaSummary}"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Button Tag="Previous" Click="RemoteKey_Click" Style="{StaticResource KeyButton}" Width="46" ToolTip="Previous"><TextBlock Text="&#xE892;" Style="{StaticResource Icon}"/></Button>
+                                        <Button Tag="Rewind" Click="RemoteKey_Click" Style="{StaticResource KeyButton}" Width="46" ToolTip="Rewind"><TextBlock Text="&#xEB9E;" Style="{StaticResource Icon}"/></Button>
+                                        <Button Tag="PlayPause" Click="RemoteKey_Click" Style="{StaticResource PrimaryButton}" Width="58" Height="44" Margin="3" ToolTip="Play / Pause"><TextBlock Text="&#xE768;" Style="{StaticResource Icon}" FontSize="16"/></Button>
+                                        <Button Tag="FastForward" Click="RemoteKey_Click" Style="{StaticResource KeyButton}" Width="46" ToolTip="Fast forward"><TextBlock Text="&#xEB9D;" Style="{StaticResource Icon}"/></Button>
+                                        <Button Tag="Next" Click="RemoteKey_Click" Style="{StaticResource KeyButton}" Width="46" ToolTip="Next"><TextBlock Text="&#xE893;" Style="{StaticResource Icon}"/></Button>
+                                        <Button Tag="Stop" Click="RemoteKey_Click" Style="{StaticResource KeyButton}" Width="46" ToolTip="Stop"><TextBlock Text="&#xE71A;" Style="{StaticResource Icon}"/></Button>
+                                        <Border Width="1" Background="{StaticResource Line}" Margin="10,6"/>
+                                        <Button Tag="ChannelStepDown" Click="RemoteKey_Click" Style="{StaticResource KeyButton}" Padding="12,0" ToolTip="Channel down"><TextBlock Text="CH −"/></Button>
+                                        <Button Tag="ChannelStepUp" Click="RemoteKey_Click" Style="{StaticResource KeyButton}" Padding="12,0" ToolTip="Channel up"><TextBlock Text="CH +"/></Button>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+
+                            <Grid Grid.Row="1">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <Border Style="{StaticResource Card}" Margin="0">
+                                    <Grid>
+                                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="220"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock Text="CHANNEL LIST" Style="{StaticResource SectionLabel}"/>
+                                                <TextBlock x:Name="ChannelsStatus" Text="Load the channel list from the TV to zap with one click." Style="{StaticResource Hint}" Margin="0,4,0,0"/>
+                                            </StackPanel>
+                                            <TextBox x:Name="ChannelSearch" Grid.Column="1" Style="{StaticResource TextField}" Tag="Filter channels..." TextChanged="ChannelSearch_TextChanged" Margin="10,0,8,0"/>
+                                            <Button x:Name="LoadChannelsButton" Grid.Column="2" Content="[ LOAD CHANNELS ]" Click="LoadChannels_Click"/>
+                                        </Grid>
+                                        <Border Grid.Row="1" Height="1" Background="{StaticResource LineSoft}" Margin="0,12"/>
+                                        <ItemsControl x:Name="ChannelsList" Grid.Row="2" ItemTemplate="{StaticResource ChannelRow}" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling">
+                                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><VirtualizingStackPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                            <ItemsControl.Template>
+                                                <ControlTemplate TargetType="ItemsControl"><ScrollViewer CanContentScroll="True" Focusable="False" VerticalScrollBarVisibility="Auto"><ItemsPresenter/></ScrollViewer></ControlTemplate>
+                                            </ItemsControl.Template>
+                                        </ItemsControl>
+                                    </Grid>
+                                </Border>
+                                <Border x:Name="SourcesCard" Grid.Column="1" Style="{StaticResource Card}" Width="220" Margin="12,0,0,0" VerticalAlignment="Top" Visibility="Collapsed">
+                                    <StackPanel>
+                                        <TextBlock Text="INPUTS" Style="{StaticResource SectionLabel}"/>
+                                        <ItemsControl x:Name="SourcesList" Margin="0,10,0,0">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate DataType="models:TvSource">
+                                                    <Button Content="{Binding Name}" Tag="{Binding}" Click="Source_Click" HorizontalContentAlignment="Left" Margin="0,0,0,6"/>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                        </Grid>
+
+                        <!-- ============ APPS ============ -->
+                        <Grid x:Name="AppsPage" Visibility="Collapsed">
+                            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                            <Grid Margin="0,0,0,14">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="280"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <TextBox x:Name="AppSearch" Style="{StaticResource TextField}" Tag="Search apps..." TextChanged="AppSearch_TextChanged"/>
+                                <Button Grid.Column="1" Margin="8,0,0,0" Click="RefreshApps_Click">
+                                    <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE72C;" Style="{StaticResource Icon}" FontSize="12"/><TextBlock Text="RELOAD LIST" Margin="8,0,0,0"/></StackPanel>
+                                </Button>
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                    <TextBlock Text="OPEN NOW  " Style="{StaticResource SectionLabel}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding CurrentApp}" VerticalAlignment="Center" MaxWidth="220" TextTrimming="CharacterEllipsis"/>
+                                </StackPanel>
+                            </Grid>
+                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="0,0,8,0">
+                                <StackPanel Margin="0,0,0,16">
+                                    <StackPanel x:Name="FavoritesSection">
+                                        <TextBlock Text="★ PINNED" Style="{StaticResource SectionLabel}" Foreground="{StaticResource Warn}" Margin="0,0,0,10"/>
+                                        <ItemsControl x:Name="FavoriteAppsList" ItemTemplate="{StaticResource AppTile}" ItemsPanel="{StaticResource WrapItems}"/>
+                                        <Border Height="1" Background="{StaticResource LineSoft}" Margin="0,4,10,16"/>
+                                    </StackPanel>
+                                    <TextBlock x:Name="AppsCountText" Text="ALL APPS" Style="{StaticResource SectionLabel}" Margin="0,0,0,10"/>
+                                    <ItemsControl x:Name="AllAppsList" ItemTemplate="{StaticResource AppTile}" ItemsPanel="{StaticResource WrapItems}"/>
+                                    <TextBlock x:Name="NoAppsText" Text="Connect to a TV to load its application list." Style="{StaticResource Hint}" FontSize="12"/>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Grid>
+
+                        <!-- ============ AMBILIGHT ============ -->
+                        <ScrollViewer x:Name="AmbilightPage" VerticalScrollBarVisibility="Auto" Visibility="Collapsed" Padding="0,0,8,0">
+                            <Grid Margin="0,0,0,16">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="14"/><ColumnDefinition Width="380"/></Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <Border Style="{StaticResource Card}">
+                                        <StackPanel>
+                                            <CheckBox x:Name="AmbilightSwitch" Style="{StaticResource Switch}" Click="AmbilightSwitch_Click" IsChecked="{Binding AmbilightOn, Mode=TwoWay}">
+                                                <StackPanel>
+                                                    <TextBlock Text="AMBILIGHT" Style="{StaticResource SectionLabel}"/>
+                                                    <TextBlock Text="{Binding AmbilightMode}" FontSize="17" Margin="0,6,0,0"/>
+                                                </StackPanel>
+                                            </CheckBox>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Style="{StaticResource Card}">
+                                        <StackPanel>
+                                            <TextBlock Text="FOLLOW VIDEO" Style="{StaticResource SectionLabel}"/>
+                                            <TextBlock Text="The lights mirror the colors at the edges of the picture." Style="{StaticResource Hint}" Margin="0,4,0,10"/>
+                                            <ItemsControl x:Name="VideoStyles" ItemTemplate="{StaticResource StyleChip}" ItemsPanel="{StaticResource WrapItems}"/>
+                                            <TextBlock Text="FOLLOW AUDIO" Style="{StaticResource SectionLabel}" Margin="0,14,0,0"/>
+                                            <TextBlock Text="The lights pulse with the sound." Style="{StaticResource Hint}" Margin="0,4,0,10"/>
+                                            <ItemsControl x:Name="AudioStyles" ItemTemplate="{StaticResource StyleChip}" ItemsPanel="{StaticResource WrapItems}"/>
+                                            <TextBlock Text="FOLLOW COLOR" Style="{StaticResource SectionLabel}" Margin="0,14,0,0"/>
+                                            <TextBlock Text="A calm, static color scene." Style="{StaticResource Hint}" Margin="0,4,0,10"/>
+                                            <ItemsControl x:Name="ColorStyles" ItemTemplate="{StaticResource StyleChip}" ItemsPanel="{StaticResource WrapItems}"/>
+                                            <TextBlock Text="Available styles depend on the TV model and firmware." Style="{StaticResource Hint}" Foreground="{StaticResource Faint}" Margin="0,6,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+
+                                <Border Grid.Column="2" Style="{StaticResource Card}" VerticalAlignment="Top">
+                                    <StackPanel>
+                                        <TextBlock Text="CUSTOM COLOR" Style="{StaticResource SectionLabel}"/>
+                                        <Grid Height="190" Margin="0,4,0,8" ClipToBounds="True">
+                                            <Border x:Name="TvMock" Width="210" Height="118" CornerRadius="3" Background="#030403" BorderBrush="#1C1F1C" BorderThickness="3" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                <Border.Effect><DropShadowEffect x:Name="PreviewGlow" ShadowDepth="0" BlurRadius="80" Opacity="1" Color="#FF6A1A"/></Border.Effect>
+                                                <TextBlock x:Name="ColorHexText" Text="#FF6A1A" Foreground="#3A423B" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12"/>
+                                            </Border>
+                                        </Grid>
+                                        <TextBlock Text="HUE" Style="{StaticResource Caption}"/>
+                                        <Slider x:Name="HueSlider" Style="{StaticResource GradientSlider}" Minimum="0" Maximum="360" Value="22" ValueChanged="ColorSlider_ValueChanged" Margin="0,2,0,8">
+                                            <Slider.Background>
+                                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                                    <GradientStop Color="#FF0000" Offset="0"/><GradientStop Color="#FFFF00" Offset="0.1667"/><GradientStop Color="#00FF00" Offset="0.3333"/>
+                                                    <GradientStop Color="#00FFFF" Offset="0.5"/><GradientStop Color="#0000FF" Offset="0.6667"/><GradientStop Color="#FF00FF" Offset="0.8333"/><GradientStop Color="#FF0000" Offset="1"/>
+                                                </LinearGradientBrush>
+                                            </Slider.Background>
+                                        </Slider>
+                                        <TextBlock Text="SATURATION" Style="{StaticResource Caption}"/>
+                                        <Slider x:Name="SatSlider" Style="{StaticResource GradientSlider}" Minimum="0" Maximum="100" Value="90" ValueChanged="ColorSlider_ValueChanged" Margin="0,2,0,8">
+                                            <Slider.Background><LinearGradientBrush x:Name="SatGradient" StartPoint="0,0" EndPoint="1,0"><GradientStop Color="White" Offset="0"/><GradientStop x:Name="SatGradientEnd" Color="#FF6A1A" Offset="1"/></LinearGradientBrush></Slider.Background>
+                                        </Slider>
+                                        <TextBlock Text="BRIGHTNESS" Style="{StaticResource Caption}"/>
+                                        <Slider x:Name="BrightSlider" Style="{StaticResource GradientSlider}" Minimum="5" Maximum="100" Value="100" ValueChanged="ColorSlider_ValueChanged" Margin="0,2,0,10">
+                                            <Slider.Background><LinearGradientBrush StartPoint="0,0" EndPoint="1,0"><GradientStop Color="Black" Offset="0"/><GradientStop x:Name="BrightGradientEnd" Color="#FF6A1A" Offset="1"/></LinearGradientBrush></Slider.Background>
+                                        </Slider>
+                                        <TextBlock Text="PRESETS" Style="{StaticResource Caption}" Margin="0,0,0,6"/>
+                                        <ItemsControl x:Name="SwatchList" ItemsPanel="{StaticResource WrapItems}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Button Width="30" Height="30" Margin="0,0,7,7" Padding="0" Tag="{Binding}" Click="Swatch_Click" ToolTip="{Binding}">
+                                                        <Border Width="22" Height="22" CornerRadius="11" Background="{Binding}"/>
+                                                    </Button>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        <Grid Margin="0,8,0,0">
+                                            <CheckBox x:Name="LiveColorSwitch" Style="{StaticResource Switch}" HorizontalAlignment="Left">
+                                                <TextBlock Text="Live" Foreground="{StaticResource Dim}"/>
+                                            </CheckBox>
+                                            <Button Content="[ APPLY COLOR ]" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Right" Click="ApplyColor_Click"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                        </ScrollViewer>
+
+                        <!-- ============ CONSOLE ============ -->
+                        <Grid x:Name="LogPage" Visibility="Collapsed" Margin="0,0,0,16">
+                            <Border Style="{StaticResource Card}" Margin="0" Background="{StaticResource Inset}">
+                                <Grid>
+                                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                    <Grid Margin="0,0,0,12">
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="SESSION CONSOLE" Style="{StaticResource SectionLabel}"/>
+                                            <TextBlock Text="Commands sent to the TV, connection events and errors." Style="{StaticResource Hint}" Margin="0,4,0,0"/>
+                                        </StackPanel>
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                            <Button Content="[ COPY ]" Click="CopyLog_Click" Margin="0,0,8,0"/>
+                                            <Button Content="[ CLEAR ]" Click="ClearLog_Click"/>
+                                        </StackPanel>
+                                    </Grid>
+                                    <ItemsControl x:Name="LogList" Grid.Row="1" ItemTemplate="{StaticResource LogRow}" FontSize="12" VirtualizingPanel.IsVirtualizing="True">
+                                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><VirtualizingStackPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                        <ItemsControl.Template>
+                                            <ControlTemplate TargetType="ItemsControl"><ScrollViewer x:Name="LogScroll" CanContentScroll="True" Focusable="False" VerticalScrollBarVisibility="Auto"><ItemsPresenter/></ScrollViewer></ControlTemplate>
+                                        </ItemsControl.Template>
+                                    </ItemsControl>
+                                </Grid>
+                            </Border>
+                        </Grid>
+
+                        <!-- ============ SETTINGS ============ -->
+                        <ScrollViewer x:Name="SettingsPage" VerticalScrollBarVisibility="Auto" Visibility="Collapsed" Padding="0,0,8,0">
+                            <Grid Margin="0,0,0,16">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="14"/><ColumnDefinition Width="340"/></Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <Border Style="{StaticResource Card}">
+                                        <StackPanel>
+                                            <TextBlock Text="ADD A PHILIPS TV" Style="{StaticResource SectionLabel}" Margin="0,0,0,10"/>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                <TextBox x:Name="HostInput" Style="{StaticResource TextField}" Tag="IP address or hostname, e.g. 192.168.1.42" KeyDown="HostInput_KeyDown"/>
+                                                <Button Grid.Column="1" Content="[ CONNECT ]" Margin="8,0,0,0" Click="AddHost_Click"/>
+                                                <Button x:Name="DiscoverButton" Grid.Column="2" Margin="8,0,0,0" Style="{StaticResource PrimaryButton}" Click="Discover_Click">
+                                                    <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE721;" Style="{StaticResource Icon}" FontSize="12"/><TextBlock x:Name="DiscoverButtonText" Text="SCAN NETWORK" Margin="8,0,0,0"/></StackPanel>
+                                                </Button>
+                                            </Grid>
+                                            <ProgressBar x:Name="ScanProgress" Margin="0,10,0,0" Maximum="1" Value="0" Visibility="Hidden"/>
+                                            <TextBlock x:Name="DiscoveryStatus" Text="Scan your local network or enter the TV's IP address." Style="{StaticResource Hint}" Margin="0,6,0,0"/>
+                                            <ItemsControl x:Name="FoundTVList" ItemTemplate="{StaticResource FoundTvRow}" Margin="0,10,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Style="{StaticResource Card}">
+                                        <StackPanel>
+                                            <TextBlock Text="SAVED TELEVISIONS" Style="{StaticResource SectionLabel}" Margin="0,0,0,10"/>
+                                            <ItemsControl x:Name="SavedTVList" ItemTemplate="{StaticResource SavedTvRow}"/>
+                                            <TextBlock x:Name="NoSavedText" Text="No saved TVs yet." Style="{StaticResource Hint}"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Style="{StaticResource Card}">
+                                        <StackPanel>
+                                            <TextBlock Text="ACTIVE TV / WAKE-ON-LAN" Style="{StaticResource SectionLabel}" Margin="0,0,0,10"/>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="110"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                                <TextBlock Text="MODEL" Style="{StaticResource Caption}" VerticalAlignment="Center"/><TextBlock Grid.Column="1" Text="{Binding ModelLabel}"/>
+                                                <TextBlock Grid.Row="1" Text="HOST" Style="{StaticResource Caption}" Margin="0,8,0,0" VerticalAlignment="Center"/><TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Host}" Margin="0,8,0,0"/>
+                                                <TextBlock Grid.Row="2" Text="PROTOCOL" Style="{StaticResource Caption}" Margin="0,8,0,0" VerticalAlignment="Center"/><TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding ApiLabel}" Margin="0,8,0,0"/>
+                                                <TextBlock Grid.Row="3" Text="TV MAC" Style="{StaticResource Caption}" Margin="0,12,0,0" VerticalAlignment="Center"/>
+                                                <Grid Grid.Row="3" Grid.Column="1" Margin="0,10,0,0">
+                                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                    <TextBox x:Name="MacInput" Style="{StaticResource TextField}" Tag="AA:BB:CC:DD:EE:FF"/>
+                                                    <Button Grid.Column="1" Content="[ DETECT ]" Margin="6,0,0,0" Click="DetectMac_Click" ToolTip="Read the MAC from the ARP table (the TV must be on)"/>
+                                                    <Button Grid.Column="2" Content="[ SAVE ]" Margin="6,0,0,0" Click="SaveMac_Click"/>
+                                                    <Button Grid.Column="3" Content="[ WAKE ]" Margin="6,0,0,0" Click="SendWake_Click" ToolTip="Send a Wake-on-LAN packet now"/>
+                                                </Grid>
+                                            </Grid>
+                                            <TextBlock Text="Wake-on-LAN must be enabled on the TV (Settings › Network › Switch on with Wi-Fi / Wake on LAN)." Style="{StaticResource Hint}" Margin="0,10,0,0"/>
+                                            <Button Content="[ PAIR AGAIN ]" HorizontalAlignment="Left" Margin="0,12,0,0" Click="Repair_Click" ToolTip="Forget the stored pairing and request a new PIN from the TV"/>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="2">
+                                    <Border Style="{StaticResource Card}">
+                                        <StackPanel>
+                                            <TextBlock Text="APPEARANCE" Style="{StaticResource SectionLabel}"/>
+                                            <TextBlock Text="Terminal accent color" Style="{StaticResource Hint}" Margin="0,4,0,10"/>
+                                            <WrapPanel x:Name="AccentChips"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Style="{StaticResource Card}">
+                                        <StackPanel>
+                                            <TextBlock Text="BEHAVIOR" Style="{StaticResource SectionLabel}" Margin="0,0,0,12"/>
+                                            <CheckBox x:Name="CloseToTraySwitch" Style="{StaticResource Switch}" Click="PreferenceSwitch_Click" Margin="0,0,0,12">
+                                                <StackPanel><TextBlock Text="Keep running in the tray"/><TextBlock Text="Closing the window hides it next to the clock." Style="{StaticResource Hint}" Margin="0,2,0,0"/></StackPanel>
+                                            </CheckBox>
+                                            <CheckBox x:Name="StartupSwitch" Style="{StaticResource Switch}" Click="StartupSwitch_Click" Margin="0,0,0,12">
+                                                <StackPanel><TextBlock Text="Start with Windows"/><TextBlock Text="Launches minimized to the tray." Style="{StaticResource Hint}" Margin="0,2,0,0"/></StackPanel>
+                                            </CheckBox>
+                                            <CheckBox x:Name="ShortcutsSwitch" Style="{StaticResource Switch}" Click="PreferenceSwitch_Click" Margin="0,0,0,12">
+                                                <StackPanel><TextBlock Text="Keyboard control"/><TextBlock Text="Arrows, Enter, +/-, M and more drive the TV." Style="{StaticResource Hint}" Margin="0,2,0,0"/></StackPanel>
+                                            </CheckBox>
+                                            <CheckBox x:Name="NotificationsSwitch" Style="{StaticResource Switch}" Click="PreferenceSwitch_Click">
+                                                <StackPanel><TextBlock Text="Pop-up notifications"/><TextBlock Text="Short in-app toasts for results and errors." Style="{StaticResource Hint}" Margin="0,2,0,0"/></StackPanel>
+                                            </CheckBox>
+                                            <TextBlock Text="STATUS REFRESH" Style="{StaticResource Caption}" Margin="0,16,0,8"/>
+                                            <WrapPanel x:Name="PollChips">
+                                                <RadioButton Content="2s" CommandParameter="2" GroupName="Poll" Style="{StaticResource Chip}" Checked="PollChip_Click"/>
+                                                <RadioButton Content="5s" CommandParameter="5" GroupName="Poll" Style="{StaticResource Chip}" Checked="PollChip_Click"/>
+                                                <RadioButton Content="10s" CommandParameter="10" GroupName="Poll" Style="{StaticResource Chip}" Checked="PollChip_Click"/>
+                                                <RadioButton Content="30s" CommandParameter="30" GroupName="Poll" Style="{StaticResource Chip}" Checked="PollChip_Click"/>
+                                            </WrapPanel>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Style="{StaticResource Card}">
+                                        <StackPanel>
+                                            <TextBlock Text="ABOUT" Style="{StaticResource SectionLabel}"/>
+                                            <TextBlock x:Name="VersionText" Text="Philips Control" Margin="0,8,0,0"/>
+                                            <TextBlock Text="Pairing credentials are encrypted with Windows DPAPI and never leave this PC." Style="{StaticResource Hint}" Margin="0,6,0,10"/>
+                                            <Button Content="[ OPEN DATA FOLDER ]" HorizontalAlignment="Left" Click="OpenDataFolder_Click"/>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+                            </Grid>
+                        </ScrollViewer>
+                    </Grid>
+                </Grid>
+
+                <!-- Toasts -->
+                <StackPanel x:Name="ToastHost" Grid.Column="1" VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="0,0,28,18" Width="340"/>
+            </Grid>
+
+            <!-- Status bar -->
+            <Border Grid.Row="2" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0" Background="{StaticResource Panel}">
+                <Grid Margin="12,0">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock x:Name="StatusKind" Text="READY" Foreground="{DynamicResource Accent}" FontSize="11"/>
+                        <TextBlock x:Name="StatusText" Text="  PHILIPS JOINTSPACE  |  LOCAL NETWORK CONTROL" Foreground="{StaticResource Dim}" FontSize="11" Margin="10,0,0,0" TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock x:Name="StatusSleep" Foreground="{DynamicResource Accent}" FontSize="11" Margin="0,0,16,0"/>
+                        <TextBlock Text="{Binding ApiLabel}" Foreground="{StaticResource Faint}" FontSize="11"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+    </Border>
+</Window>
